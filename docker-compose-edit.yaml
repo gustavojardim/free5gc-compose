@@ -74,7 +74,7 @@ services:
     image: free5gc/aanf:local
     command: ./aanf -c ./config/aanfcfg.yaml
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       - ./config/aanfcfg.yaml:/free5gc/config/aanfcfg.yaml:ro # Mount config file as read-only
       - ./cert:/free5gc/cert:ro # Mount cert directory as read-only
@@ -106,7 +106,6 @@ services:
         ipv4_address: 10.100.200.18
     depends_on:
       - free5gc-nrf
-
 
   free5gc-nssf:
     container_name: nssf
