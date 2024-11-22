@@ -1,14 +1,14 @@
 # IMSI number of the UE. IMSI = [MCC|MNC|MSISDN] (In total 15 digits)
-supi: "imsi-208930000000001"
+supi: "imsi-208930000000001" #"208930000000120"
 # Mobile Country Code value of HPLMN
 mcc: "208"
 # Mobile Network Code value of HPLMN (2 or 3 digits)
 mnc: "93"
 
 # Permanent subscription key
-key: "8baf473f2f8fd09487cccbd7097c6862"
+key: "8baf473f2f8fd09487cccbd7097c6862" # "00112233445566778899AABBCCDDEEFF"
 # Operator code (OP or OPC) of the UE
-op: "8e27b6af0e692e750f32667a3b14605d"
+op: "8e27b6af0e692e750f32667a3b14605d" # "00112233445566778899AABBCCDDEEFF"
 # This value specifies the OP type and it can be either 'OP' or 'OPC'
 opType: "OPC"
 # Authentication Management Field (AMF) value

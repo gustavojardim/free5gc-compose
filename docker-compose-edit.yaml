@@ -14,6 +14,9 @@ services:
       privnet:
         aliases:
           - upf.free5gc.org
+    ports:
+      - "9487:9487/tcp"
+      - "2152:2152/udp"
 
   db:
     container_name: mongodb
@@ -65,47 +68,67 @@ services:
           - amf.free5gc.org
     depends_on:
       - free5gc-nrf
-
-  free5gc-aanf:
-    container_name: aanf
-    build:
-      context: .
-      dockerfile: ./nf_aanf/Dockerfile # Specify the local Dockerfile to build the AAnF image
-    image: free5gc/aanf:local
-    command: ./aanf -c ./config/aanfcfg.yaml
     ports:
-      - "8001:8001"
-    volumes:
-      - ./config/aanfcfg.yaml:/free5gc/config/aanfcfg.yaml:ro # Mount config file as read-only
-      - ./cert:/free5gc/cert:ro # Mount cert directory as read-only
-    environment:
-      GIN_MODE: release
-    networks:
-      privnet:
-        ipv4_address: 10.100.200.17
-    depends_on:
-      - free5gc-amf
-      - free5gc-udm
- 
+      - "38412:38412/sctp"  # Expose NGAP SCTP port
+
+  # free5gc-aanf:
+  #   container_name: aanf
+  #   build:
+  #     context: .
+  #     dockerfile: ./nf_aanf/Dockerfile # Specify the local Dockerfile to build the AAnF image
+  #   image: free5gc/aanf:local
+  #   command: ./aanf -c ./config/aanfcfg.yaml
+  #   expose:
+  #     - 8000
+  #   volumes:
+  #     - ./config/aanfcfg.yaml:/free5gc/config/aanfcfg.yaml:ro # Mount config file as read-only
+  #     - ./cert:/free5gc/cert:ro # Mount cert directory as read-only
+  #   environment:
+  #     GIN_MODE: release
+  #   networks:
+  #     privnet:
+  #       ipv4_address: 10.100.200.17
+  #   depends_on:
+  #     - free5gc-amf
+  #     - free5gc-udm
+
   free5gc-ausf:
     container_name: ausf
-    build:
-      context: ../ausf # Define o contexto como o diretório onde está o Dockerfile do ausf
-      dockerfile: Dockerfile
-    image: free5gc/ausf:local
+    image: free5gc/ausf:v3.4.3
     command: ./ausf -c ./config/ausfcfg.yaml
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
-      - ./config/ausfcfg.yaml:/free5gc/config/ausfcfg.yaml:ro
-      - ./cert:/free5gc/cert:ro
+      - ./config/ausfcfg.yaml:/free5gc/config/ausfcfg.yaml
+      - ./cert:/free5gc/cert
     environment:
       GIN_MODE: release
     networks:
       privnet:
-        ipv4_address: 10.100.200.18
+        aliases:
+          - ausf.free5gc.org
     depends_on:
       - free5gc-nrf
+
+  # free5gc-ausf:
+  #   container_name: ausf
+  #   build:
+  #     context: ../ausf # Define o contexto como o diretório onde está o Dockerfile do ausf
+  #     dockerfile: Dockerfile
+  #   image: free5gc/ausf:v3.4.4
+  #   command: ./ausf -c ./config/ausfcfg.yaml
+  #   expose:
+  #     - 8000
+  #   volumes:
+  #     - ./config/ausfcfg.yaml:/free5gc/config/ausfcfg.yaml:ro
+  #     - ./cert:/free5gc/cert:ro
+  #   environment:
+  #     GIN_MODE: release
+  #   networks:
+  #     privnet:
+  #       ipv4_address: 10.100.200.18
+  #   depends_on:
+  #     - free5gc-nrf
 
   free5gc-nssf:
     container_name: nssf
@@ -223,43 +246,43 @@ services:
       - free5gc-nrf
       - free5gc-webui
 
-  free5gc-n3iwf:
-    container_name: n3iwf
-    image: free5gc/n3iwf:v3.4.3
-    command: ./n3iwf -c ./config/n3iwfcfg.yaml
-    volumes:
-      - ./config/n3iwfcfg.yaml:/free5gc/config/n3iwfcfg.yaml
-      - ./config/n3iwf-ipsec.sh:/free5gc/n3iwf-ipsec.sh
-    environment:
-      GIN_MODE: release
-    cap_add:
-      - NET_ADMIN
-    networks:
-      privnet:
-        ipv4_address: 10.100.200.15
-        aliases:
-          - n3iwf.free5gc.org
-    depends_on:
-      - free5gc-amf
-      - free5gc-smf
-      - free5gc-upf
+  # free5gc-n3iwf:
+  #   container_name: n3iwf
+  #   image: free5gc/n3iwf:v3.4.3
+  #   command: ./n3iwf -c ./config/n3iwfcfg.yaml
+  #   volumes:
+  #     - ./config/n3iwfcfg.yaml:/free5gc/config/n3iwfcfg.yaml
+  #     - ./config/n3iwf-ipsec.sh:/free5gc/n3iwf-ipsec.sh
+  #   environment:
+  #     GIN_MODE: release
+  #   cap_add:
+  #     - NET_ADMIN
+  #   networks:
+  #     privnet:
+  #       ipv4_address: 10.100.200.15
+  #       aliases:
+  #         - n3iwf.free5gc.org
+  #   depends_on:
+  #     - free5gc-amf
+  #     - free5gc-smf
+  #     - free5gc-upf
 
-  free5gc-tngf:
-    container_name: tngf
-    image: free5gc/tngf:latest
-    command: ./tngf -c ./config/tngfcfg.yaml
-    volumes:
-      - ./config/tngfcfg.yaml:/free5gc/config/tngfcfg.yaml
-      - ./cert:/free5gc/cert
-    environment:
-      GIN_MODE: release
-    cap_add:
-      - NET_ADMIN
-    network_mode: host
-    depends_on:
-      - free5gc-amf
-      - free5gc-smf
-      - free5gc-upf
+  # free5gc-tngf:
+  #   container_name: tngf
+  #   image: free5gc/tngf:latest
+  #   command: ./tngf -c ./config/tngfcfg.yaml
+  #   volumes:
+  #     - ./config/tngfcfg.yaml:/free5gc/config/tngfcfg.yaml
+  #     - ./cert:/free5gc/cert
+  #   environment:
+  #     GIN_MODE: release
+  #   cap_add:
+  #     - NET_ADMIN
+  #   network_mode: host
+  #   depends_on:
+  #     - free5gc-amf
+  #     - free5gc-smf
+  #     - free5gc-upf
 
   free5gc-nef:
     container_name: nef
@@ -321,23 +344,23 @@ services:
       - free5gc-amf
       - free5gc-upf
 
-  n3iwue:
-    container_name: n3iwue
-    image: free5gc/n3iwue:latest
-    command: bash -c "ip route del default && ip route add default via 10.100.200.1 dev eth0 metric 203 && sleep infinity"
-    volumes:
-      - ./config/n3uecfg.yaml:/n3iwue/config/n3ue.yaml
-    cap_add:
-      - NET_ADMIN
-    devices:
-      - "/dev/net/tun"
-    networks:
-      privnet:
-        ipv4_address: 10.100.200.203
-        aliases:
-          - n3ue.free5gc.org
-    depends_on:
-      - free5gc-n3iwf
+  # n3iwue:
+  #   container_name: n3iwue
+  #   image: free5gc/n3iwue:latest
+  #   command: bash -c "ip route del default && ip route add default via 10.100.200.1 dev eth0 metric 203 && sleep infinity"
+  #   volumes:
+  #     - ./config/n3uecfg.yaml:/n3iwue/config/n3ue.yaml
+  #   cap_add:
+  #     - NET_ADMIN
+  #   devices:
+  #     - "/dev/net/tun"
+  #   networks:
+  #     privnet:
+  #       ipv4_address: 10.100.200.203
+  #       aliases:
+  #         - n3ue.free5gc.org
+  #   depends_on:
+  #     - free5gc-n3iwf
 
 networks:
   privnet:
