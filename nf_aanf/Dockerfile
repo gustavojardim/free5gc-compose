@@ -4,6 +4,7 @@ WORKDIR /free5gc
 COPY . .
 
 RUN cd src/aanf && \
+    go mod tidy && \
     go build -o aanf
 
 FROM ubuntu:20.04
