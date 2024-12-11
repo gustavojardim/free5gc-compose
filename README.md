@@ -120,7 +120,7 @@ ue:
   depends_on:
     - ueransim
 ```
-
+ 
 5. Run `docker-compose.yaml`
 
 ### srsRAN Notes
