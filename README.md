@@ -215,11 +215,18 @@ sudo ./PacketRusher ue
 
 # Demonstration - UE Configuration and Key Registration Tests
 
-(To be completed)
+After spinning up the Core, go to **http://localhost:5000/subscriber** and create a new UE subscriber. Either copy the values from **PacketRusher/config/config.yml** to the subscriber being created or the other way around.
 
-This section will detail the steps to configure UEs and demonstrate key registration tests, including AKMA configurations and their validations.
+Once that's done, you can run PacketRusher as described on the previous section. Examples of it working:
 
+AANF succesfully registering AKMA keys and deriving a Kaf.
+![image](https://github.com/user-attachments/assets/82f71924-22ff-44e5-afbc-ffbe305b3574)
 
+Local ue-akma-server working
+![image](https://github.com/user-attachments/assets/e354d992-25ea-4040-a426-7b492e1c5a83)
+
+Kaf's being derived both at the ue-akma-server and at AANF
+![image](https://github.com/user-attachments/assets/43a7b7d2-299d-4153-80a0-4fd7cdaeeca0)
 
 
 ## References
