@@ -9,3 +9,6 @@ cert/*_*.pem
 
 # ausf aanf local repo
 nf_aanf_ausf
+
+# inteliJ
+.idea
