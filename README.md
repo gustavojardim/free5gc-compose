@@ -1,149 +1,230 @@
-# free5GC compose
+# free5GC Compose (AANF Implementation)
 
-This repository is a docker compose version of [free5GC](https://github.com/free5gc/free5gc) for stage 3. It's inspired by [free5gc-docker-compose](https://github.com/calee0219/free5gc-docker-compose) and also reference to [docker-free5gc](https://github.com/abousselmi/docker-free5gc).
+This repository is a fork of the [free5GC project](https://github.com/free5gc/free5gc) and aims to implement the AANF module.
 
-You can setup your own config in [config](./config) folder and [docker-compose.yaml](docker-compose.yaml)
+## Installation Guide
 
-## Prerequisites
+### Operating System
 
-- [GTP5G kernel module](https://github.com/free5gc/gtp5g): needed to run the UPF (Currently, UPF only supports GTP5G versions between 0.8.6 and 0.8.10 (use git clone --branch v0.8.10 --depth 1 https://github.com/free5gc/gtp5g.git).)
-- [Docker Engine](https://docs.docker.com/engine/install): needed to run the Free5GC containers
-- [Docker Compose v2](https://docs.docker.com/compose/install): needed to bootstrap the free5GC stack
+To run the ecosystem, it is recommended to use **Ubuntu 20.04.6 LTS (Focal Fossa)**.
 
-**Note: AVX for MongoDB**: some HW does not support MongoDB releases above`4.4` due to use of the new AVX instructions set. To verify if your CPU is compatible you can check CPU flags by running `grep avx /proc/cpuinfo`. A workaround is suggested [here](https://github.com/free5gc/free5gc-compose/issues/30#issuecomment-897627049).
+Available at: [Ubuntu Releases](https://releases.ubuntu.com/focal/)
 
-## Start free5gc
+After installing Ubuntu, it is necessary to downgrade to kernel `5.4.0-60-generic`.
 
-Because we need to create tunnel interface, we need to use privileged container with root permission.
-
-### Pull docker images from Docker Hub
+Follow the tutorial available on [groovypost](https://www.groovypost.com/howto/how-to-downgrade-the-kernel-in-ubuntu/) to downgrade the kernel:
 
 ```bash
-docker compose pull
+# Open a terminal and enter the following commands to install mainline:
+sudo apt-add-repository -y ppa:cappelikan/ppa
+sudo apt update
+sudo apt install mainline
 ```
 
-### [Optional] Build docker images from local sources
+Once installed, launch the **Ukuu Mainline Kernel Installer** app. The currently running kernel will be listed.
+
+![Kernel Selection](src/resources/image1.png)
+
+Select an earlier version of the Linux kernel and click **Install**.
+
+Wait for the installation to complete. Restart your computer and boot into the selected kernel.
+
+- **To access the GRUB menu**:
+    - Hold down **Esc** if your system uses UEFI or **Shift** if it uses BIOS during the startup process.
+    - Use the Down Arrow key to select **Advanced Options for Ubuntu**.
+
+![GRUB Menu](src/resources/image2.png)
+
+- Select the desired kernel version. The lower the version number, the older the kernel.
+
+![Kernel Boot](src/resources/image3.png)
+
+Press **Enter**, and Ubuntu will boot using the selected kernel.
+
+As an initial requirement, download the **GTP5G Kernel Module**.
+
+### GTP5G Kernel
+
+The [GTP5G kernel module](https://github.com/free5gc/gtp5g) is required to initialize the compose setup.
+
+Download the repository at version tag `0.8.10`:
 
 ```bash
-# Clone the project
-git clone https://github.com/free5gc/free5gc-compose.git
+git clone --branch v0.8.10 --depth 1 https://github.com/free5gc/gtp5g.git
+
+# Compile
+cd gtp5g
+make clean && make
+
+# Install the kernel module
+sudo make install
+```
+
+This will install the module and configure it to load automatically at boot.
+
+### Docker Engine
+
+The ecosystem runs on Docker, so installing the [Docker Engine](https://docs.docker.com/engine/install) is required.
+
+```bash
+# Set up Docker's apt repository
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add Docker's repository
+echo \
+"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+$(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+
+# Install Docker
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Verify installation
+sudo docker run hello-world
+```
+
+### free5GC Compose - Modifications
+
+This repository is a fork of the original project. While the original compose setup uses Docker images from public repositories, the AANF implementation required changes. The AANF project was developed within this directory: `src/aanf`.
+
+Additionally, the **AUSF** module required modifications, and a fork was created: [ausf](https://github.com/gustavojardim/ausf).
+
+In the compose configuration, other modules use Docker images from public repositories, while **AANF** and **AUSF** are built and deployed locally.
+
+### free5GC Compose - Installation
+
+Clone this repository:
+
+```bash
+git clone https://github.com/gustavojardim/free5gc-compose
 cd free5gc-compose
 
-# clone free5gc sources
+# Clone free5GC sources
 cd base
-git clone --recursive -j `nproc` https://github.com/free5gc/free5gc.git
+git clone --recursive -j $(nproc) https://github.com/free5gc/free5gc.git
 cd ..
+```
 
-# Build the images
+### Download Edited AUSF Implementation
+
+An automated script is available in the project's root directory to clone the AUSF implementation. Run the following commands:
+
+```bash
+# Grant execute permissions
+sudo chmod 777 aanf_impl.sh
+
+# Execute the script
+./aanf_impl.sh
+```
+
+The AUSF project will be cloned and placed within the compose directory.
+
+### free5GC Compose - Build
+
+To build the images, run:
+
+```bash
 make all
-docker compose -f docker-compose-build.yaml build
-
-# Alternatively you can build specific NF image e.g.:
-make amf
-docker compose -f docker-compose-build.yaml build free5gc-amf
+docker compose -f docker-compose-aanf-impl.yaml build
 ```
 
-Note:
+### free5GC Compose - Run
 
-Dangling images may be created during the build process. It is advised to remove them from time to time to free up disk space.
+To start the compose setup, execute:
 
 ```bash
-docker rmi $(docker images -f "dangling=true" -q)
+sudo docker compose -f docker-compose-aanf-impl.yaml up
 ```
 
-### Run free5GC
+This will launch all modules, including the locally compiled **AUSF** and **AANF**.
 
-You can create free5GC containers based on local images or docker hub images:
+![Compose Running](src/resources/image4.png)
+
+### free5GC Compose - Web UI
+
+To access the free5GC web interface:
+
+- Navigate to: `http://localhost:5000`
+- Default credentials:
+    - **Username**: admin
+    - **Password**: free5gc
+
+![Web UI](src/resources/image5.png)
+
+### PacketRusher - Installation
+
+**PacketRusher** is a tool based on **my5G-RANTester**, designed for performance testing and automatic validation of 5G Core Networks using simulated UE (user equipment) and gNodeB (5G base station).
+
+If you have questions or comments, feel free to open an issue.
+
+#### Dependencies
 
 ```bash
-# use local images
-docker compose -f docker-compose-build.yaml up
-# use images from docker hub
-docker compose up # add -d to run in background mode
+sudo apt install build-essential linux-headers-generic make git wget tar linux-modules-extra-$(uname -r)
+
+# Warning: This will remove any existing local Go installation
+wget https://go.dev/dl/go1.21.3.linux-amd64.tar.gz && sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.21.3.linux-amd64.tar.gz
+
+# Add Go binary to the executable PATH
+echo 'export PATH=$PATH:/usr/local/go/bin' >> $HOME/.profile
+source $HOME/.profile
 ```
 
-Destroy the established container resource after testing:
+#### Download PacketRusher Source Code
 
 ```bash
-# Remove established containers (local images)
-docker compose -f docker-compose-build.yaml rm
-# Remove established containers (remote images)
-docker compose rm
+git clone https://github.com/HewlettPackard/PacketRusher
+cd PacketRusher && echo "export PACKETRUSHER=$PWD" >> $HOME/.profile
+source $HOME/.profile
 ```
 
-## Troubleshooting
-
-Please refer to the [Troubleshooting](./TROUBLESHOOTING.md) for more troubleshooting information.
-
-## Integration with (external) gNB/UE
-
-### UERANSIM Notes
-
-The integration with the [UERANSIM](https://github.com/aligungr/UERANSIM) eNB/UE simulator is documented [here](https://free5gc.org/guide/5-install-ueransim/).
-
-This [issue](https://github.com/free5gc/free5gc-compose/issues/28) provides detailed steps that might be useful.
-
-#### Option 1: Run UE inside gNB container
-
-You can launch a UE using:
-
-```console
-docker exec -it ueransim bash
-root@host:/ueransim# ./nr-ue -c config/uecfg.yaml
-```
-
-#### Option 2: Run UE on a separate container
-
-By default, the provided UERANSIM service on this `docker-compose.yaml` will only act as a gNB. If you want to create a UE you'll need to:
-
-1. Create a subscriber through the WebUI. Follow the steps [here](https://free5gc.org/guide/Webconsole/Create-Subscriber-via-webconsole/#4-open-webconsole)
-1. Copy the `UE ID` field
-1. Change the value of `supi` in `config/uecfg.yaml` to the UE ID that you just copied
-1. Change the `linkIp` in `config/gnbcfg.yaml` to `gnb.free5gc.org` (which is also present in the `gnbSearchList` in `config/uecfg.yaml`) to enable communication between the UE and gNB services
-1. Add an UE service on `docker-compose.yaml` as it follows:
-
-```yaml
-ue:
-  container_name: ue
-  image: free5gc/ueransim:latest
-  command: ./nr-ue -c ./config/uecfg.yaml
-  volumes:
-    - ./config/uecfg.yaml:/ueransim/config/uecfg.yaml
-  cap_add:
-    - NET_ADMIN
-  devices:
-    - "/dev/net/tun"
-  networks:
-    privnet:
-      aliases:
-        - ue.free5gc.org
-  depends_on:
-    - ueransim
-```
- 
-5. Run `docker-compose.yaml`
-
-### srsRAN Notes
-
-You can check this [issue](https://github.com/free5gc/free5gc-compose/issues/94) for some sample configuration files of srsRAN + free5GC
-
-## Integration of WebUI with Nginx reverse proxy
-
-Here you can find helpful guidelines on the integration of Nginx reverse proxy to set it in front of the WebUI: https://github.com/free5gc/free5gc-compose/issues/55#issuecomment-1146648600
-
-## ULCL Configuration
-
-To start the core with a I-UPF and PSA-UPF ULCL configuration, use
+#### Build free5GC's GTP5G Kernel Module
 
 ```bash
-docker compose -f docker-compose-ulcl.yaml up
+cd $PACKETRUSHER/lib/gtp5g
+make clean && make && sudo make install
 ```
 
-> Note: This configuration have been tested using release [free5gc-compose v3.4.3](https://github.com/free5gc/free5gc-compose/tree/v3.4.3)
+#### Build PacketRusher CLI
 
-Check out the used configuration files at `config/ULCL`.
+```bash
+cd $PACKETRUSHER
+go mod download
+go build cmd/packetrusher.go
+./packetrusher --help
+```
 
-## Reference
+### PacketRusher - Run
 
-- https://github.com/open5gs/nextepc/tree/master/docker
-- https://github.com/abousselmi/docker-free5gc
+Before running PacketRusher, verify the configurations in:
+
+```text
+config/config.yml
+```
+
+Once the configurations are correct, run PacketRusher:
+
+```bash
+sudo ./PacketRusher ue
+```
+
+# Demonstration - UE Configuration and Key Registration Tests
+
+(To be completed)
+
+This section will detail the steps to configure UEs and demonstrate key registration tests, including AKMA configurations and their validations.
+
+
+
+
+## References
+
+- [free5GC](https://github.com/free5gc/free5gc.git)
+- [PacketRusher](https://github.com/HewlettPackard/PacketRusher)
+- [Open5GS Docker](https://github.com/open5gs/nextepc/tree/master/docker)
+- [Docker-Free5GC](https://github.com/abousselmi/docker-free5gc)
